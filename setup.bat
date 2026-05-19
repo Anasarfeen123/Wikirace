@@ -9,18 +9,21 @@ echo ===================================
 echo    WikiRace - Setup (Windows)
 echo ===================================
 echo.
+echo This prepares WikiRace on this computer. It may take a few minutes.
+echo You only need to run setup once.
+echo.
 
 REM ── 1. Find Python ───────────────────────────────────────
 set PYTHON=
-for %%p in (python3.12 python3.11 python3.10 python3.9 python3 python py) do (
-    where %%p >nul 2>&1
+for %%p in (python python3 py) do (
+    %%p -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" >nul 2>&1
     if not errorlevel 1 (
         set PYTHON=%%p
         goto :found_python
     )
 )
 
-echo [warn] Python not found in PATH.
+echo [warn] Python 3.9 or newer was not found.
 echo.
 echo  Option A: Download Python from https://www.python.org/downloads/
 echo            Make sure to check "Add Python to PATH" during install.
@@ -58,14 +61,11 @@ call "%VENV_DIR%\Scripts\activate.bat"
 
 echo [setup] Upgrading pip...
 pip install --upgrade pip --quiet
+if errorlevel 1 goto :install_failed
 
 echo [setup] Installing dependencies...
 pip install -r "%~dp0requirements.txt" --quiet
-if errorlevel 1 (
-    echo [error] Failed to install dependencies. Check your internet connection.
-    pause
-    exit /b 1
-)
+if errorlevel 1 goto :install_failed
 
 echo.
 echo ============================
@@ -79,3 +79,12 @@ echo  To use the bot terminal:
 echo    run_bot.bat
 echo.
 pause
+exit /b 0
+
+:install_failed
+echo.
+echo [error] Setup did not finish.
+echo         Check your internet connection, then run setup.bat again.
+echo         If it still fails, copy the error above and send it to the person who shared WikiRace with you.
+pause
+exit /b 1

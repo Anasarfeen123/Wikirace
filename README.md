@@ -4,39 +4,98 @@ Navigate Wikipedia by clicking links. Race from a **start article** to a **targe
 
 ---
 
-## Quick Start
+## Quick Start for Non-Coders
+
+Use this section if you only want to play the game and do not know coding.
+
+### What You Need
+
+- A computer with internet access.
+- Python 3.9 or newer.
+- The WikiRace project folder.
+
+If Python is missing, the setup script will tell you where to install it from.
+
+### Windows
+
+1. Download or unzip the WikiRace folder.
+2. Open the folder.
+3. Double-click `START_HERE_WINDOWS.bat`.
+4. Keep the black terminal window open while playing.
+
+The first launch installs what WikiRace needs. Later launches are faster because setup is already done.
+
+If Windows shows a security warning, choose **More info** and then **Run anyway** only if you trust where you got this folder from.
+
+### macOS / Linux
+
+1. Open the WikiRace folder.
+2. Open a terminal in that folder.
+3. Run:
+
+```bash
+bash start_here.sh
+```
+
+Keep that terminal window open while playing.
+
+The game opens at `http://127.0.0.1:5000`. If your browser does not open automatically, copy that address into your browser.
+
+### Stopping the Game
+
+Close the browser tab, then close the terminal window. You can also press `Ctrl+C` in the terminal.
+
+---
+
+## Troubleshooting
+
+### The game does not open
+
+Open this address manually in your browser:
+
+```text
+http://127.0.0.1:5000
+```
+
+Make sure the terminal window is still open.
+
+### Setup says Python is missing
+
+Install Python from:
+
+```text
+https://www.python.org/downloads/
+```
+
+On Windows, check **Add Python to PATH** during installation. After installing Python, run the starter file again.
+
+### Setup fails while installing dependencies
+
+Check your internet connection, then run the starter file again. If it still fails, copy the error message from the terminal and send it to the person helping you.
+
+---
+
+## Manual Setup
+
+If you prefer to set up and run separately:
 
 ### 1. Setup (run once)
 
-**macOS / Linux**
-```bash
-bash setup.sh
-```
+| System | Command |
+|--------|---------|
+| macOS / Linux | `bash setup.sh` |
+| Windows | `setup.bat` |
 
-**Windows**
-```
-setup.bat
-```
+This installs dependencies into a `.venv` folder inside the project.
 
-This installs Python (if missing) and all dependencies into a `.venv` folder.
+### 2. Play in Browser
 
----
+| System | Command |
+|--------|---------|
+| macOS / Linux | `bash run_human.sh` |
+| Windows | `run_human.bat` |
 
-### 2. Play (Human UI — opens in browser)
-
-**macOS / Linux**
-```bash
-bash run_human.sh
-```
-
-**Windows**
-```
-run_human.bat
-```
-
-Your browser will open automatically at `http://localhost:5000`.
-
----
+The browser UI opens automatically at `http://127.0.0.1:5000`.
 
 ### 3. Bot Terminal
 

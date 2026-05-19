@@ -302,9 +302,11 @@ def run_interactive_mode(start: str = "", target: str = ""):
         try:
             prompt = ""
             if game and not game.is_over:
+                current_title = game.current_article[:35] + "…" if len(game.current_article) > 35 else game.current_article
+                target_title = game.target_article[:30] + "…" if len(game.target_article) > 30 else game.target_article
                 prompt = (
-                    f"\n  {_c(C.DIM,'[')}cur: {_c(C.CYAN, game.current_article[:35]+"…" if len(game.current_article)>35 else game.current_article)}"
-                    f"  →  {_c(C.YELLOW, game.target_article[:30]+"…" if len(game.target_article)>30 else game.target_article)}"
+                    f"\n  {_c(C.DIM,'[')}cur: {_c(C.CYAN, current_title)}"
+                    f"  →  {_c(C.YELLOW, target_title)}"
                     f"  {_c(C.DIM, game.elapsed_str)}{_c(C.DIM,']')}\n"
                     f"  {_c(C.DIM,'>')} "
                 )

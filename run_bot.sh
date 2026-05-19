@@ -3,11 +3,12 @@
 # Options:
 #   --bot               pipe-mode (JSON stdin/stdout)
 #   --start X --target Y  start with specific articles
+set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV="$SCRIPT_DIR/.venv"
 
 if [ ! -d "$VENV" ]; then
-    echo "Virtual environment not found. Running setup first…"
+    echo "First-time setup is needed. This may take a few minutes."
     bash "$SCRIPT_DIR/setup.sh"
 fi
 

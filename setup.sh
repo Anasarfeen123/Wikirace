@@ -9,11 +9,25 @@ BOLD="\033[1m"; GREEN="\033[92m"; YELLOW="\033[93m"; RED="\033[91m"; RESET="\033
 log()  { echo -e "${GREEN}[setup]${RESET} $*"; }
 warn() { echo -e "${YELLOW}[warn]${RESET}  $*"; }
 err()  { echo -e "${RED}[error]${RESET} $*"; exit 1; }
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+on_error() {
+    echo ""
+    echo -e "${RED}${BOLD}Setup did not finish.${RESET}"
+    echo "Please copy the error above and send it to the person who shared WikiRace with you."
+    echo "Most setup problems are caused by Python missing from the computer or by no internet connection."
+    exit 1
+}
+trap on_error ERR
 
 echo ""
 echo -e "${BOLD}╔═══════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}║       WikiRace — Setup (Unix)         ║${RESET}"
 echo -e "${BOLD}╚═══════════════════════════════════════╝${RESET}"
+echo ""
+echo "This script prepares WikiRace on this computer. It may take a few minutes."
+echo "You only need to run setup once."
 echo ""
 
 # ── 1. Python ────────────────────────────────────────────
@@ -50,7 +64,7 @@ fi
 log "Using Python: $($PYTHON --version)"
 
 # ── 2. Virtual environment ────────────────────────────────
-VENV_DIR="$(dirname "$0")/.venv"
+VENV_DIR="$SCRIPT_DIR/.venv"
 if [ ! -d "$VENV_DIR" ]; then
     log "Creating virtual environment at .venv …"
     "$PYTHON" -m venv "$VENV_DIR"
@@ -66,12 +80,12 @@ log "Upgrading pip…"
 pip install --upgrade pip --quiet
 
 log "Installing dependencies from requirements.txt…"
-pip install -r "$(dirname "$0")/requirements.txt" --quiet
+pip install -r "$SCRIPT_DIR/requirements.txt" --quiet
 
 echo ""
 echo -e "${GREEN}${BOLD}✔  Setup complete!${RESET}"
 echo ""
-echo "  To play WikiRace (browser UI):"
+echo "  To play WikiRace in your browser:"
 echo "    bash run_human.sh"
 echo ""
 echo "  To use the bot terminal:"
