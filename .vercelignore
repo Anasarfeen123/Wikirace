@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+wikirace.zip
+
+run_*.sh
+run_*.bat
+setup.sh
+setup.bat
+
+Claude.md

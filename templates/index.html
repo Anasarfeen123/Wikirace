@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WikiRace — Race Through Wikipedia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body class="home-page">
+
+  <div class="bg-grid"></div>
+  <div class="home-aurora" aria-hidden="true"></div>
+  <div class="home-speedlines" aria-hidden="true"></div>
+
+  <main class="home-main">
+    <header class="home-header">
+      <div class="home-badge">Live Wikipedia sprint</div>
+      <img class="logo" src="/static/logo.png" alt="Wikirace.ai" />
+      <p class="tagline">Navigate Wikipedia links from start to target.</p>
+    </header>
+
+    <section class="hero-race" aria-label="Race preview">
+      <div class="race-orbit" aria-hidden="true">
+        <span class="orbit-node node-start"></span>
+        <span class="orbit-node node-mid node-a"></span>
+        <span class="orbit-node node-mid node-b"></span>
+        <span class="orbit-node node-target"></span>
+        <span class="orbit-runner"></span>
+      </div>
+      <div class="hero-race-copy">
+        <span>Explore</span>
+        <strong>connect</strong>
+        <span>finish fast</span>
+      </div>
+    </section>
+
+    {% if error %}
+    <div class="error-banner">
+      <span class="error-icon">⚠</span> {{ error }}
+    </div>
+    {% endif %}
+
+    {% if active_game %}
+    <div class="resume-banner">
+      <div class="resume-info">
+        <span class="resume-label">Game in progress</span>
+        <span class="resume-path">
+          <b>{{ active_game.start_article }}</b> <span aria-hidden="true">-></span> <b>{{ active_game.target_article }}</b>
+        </span>
+      </div>
+      <a href="/game" class="btn btn-resume">Resume</a>
+    </div>
+    {% endif %}
+
+    <div class="mode-tabs">
+      <button class="tab-btn active" data-tab="random">Random</button>
+      <button class="tab-btn" data-tab="custom">Custom</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-random">
+      <form action="/new_game" method="post" class="game-form">
+        <input type="hidden" name="mode" value="random" />
+        <p class="mode-desc">
+          Two Wikipedia articles are chosen at random.<br />
+          Can you find a path between them?
+        </p>
+        <div class="random-preview" id="random-preview">
+          <div class="rp-article">
+            <span class="rp-label">Start</span>
+            <span class="rp-title" id="rp-start">—</span>
+          </div>
+          <div class="rp-arrow" aria-hidden="true">-></div>
+          <div class="rp-article">
+            <span class="rp-label">Target</span>
+            <span class="rp-title" id="rp-target">—</span>
+          </div>
+          <button type="button" class="btn-icon btn-reroll" id="btn-reroll" title="Get new pair" aria-label="Get new pair">New</button>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-start-random">
+          <span>Start Race</span>
+          <span class="btn-arrow" aria-hidden="true">-></span>
+        </button>
+      </form>
+    </div>
+
+    <div class="tab-panel" id="tab-custom">
+      <form action="/new_game" method="post" class="game-form">
+        <input type="hidden" name="mode" value="custom" />
+        <div class="field-row">
+          <label for="start">Start article</label>
+          <input type="text" id="start" name="start"
+                 placeholder="e.g. Banana" autocomplete="off" />
+        </div>
+        <div class="field-row">
+          <label for="target">Target article</label>
+          <input type="text" id="target" name="target"
+                 placeholder="e.g. Black hole" autocomplete="off" />
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <span>Start Race</span>
+          <span class="btn-arrow" aria-hidden="true">-></span>
+        </button>
+      </form>
+    </div>
+
+    <div class="feature-strip" aria-label="Game features">
+      <div>
+        <span class="feature-value">01</span>
+        <span class="feature-label">Random routes</span>
+      </div>
+      <div>
+        <span class="feature-value">Live</span>
+        <span class="feature-label">Article jumps</span>
+      </div>
+      <div>
+        <span class="feature-value">Path</span>
+        <span class="feature-label">Replay on win</span>
+      </div>
+    </div>
+
+    <div class="rules-card">
+      <h3>How to play</h3>
+      <ol>
+        <li>You start on one Wikipedia article.</li>
+        <li>Click the blue links to jump to other articles.</li>
+        <li>Reach the <strong>target article</strong> in as few clicks as possible.</li>
+        <li>The stopwatch tracks your time, so move quickly.</li>
+      </ol>
+    </div>
+
+  </main>
+
+  <script>
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn, .tab-panel").forEach(el =>
+          el.classList.remove("active")
+        );
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    // ── Random pair preview ───────────────────────────────────────────────────
+    async function loadPair() {
+      const btn = document.getElementById("btn-reroll");
+      btn.classList.add("spinning");
+      document.getElementById("rp-start").textContent  = "…";
+      document.getElementById("rp-target").textContent = "…";
+      try {
+        const res  = await fetch("/api/random_pair");
+        const data = await res.json();
+        document.getElementById("rp-start").textContent  = data.start;
+        document.getElementById("rp-target").textContent = data.target;
+        // Inject hidden fields so the random pair is used
+        const form = document.querySelector("#tab-random form");
+        let sInput = form.querySelector('input[name="start"]');
+        if (!sInput) { sInput = document.createElement("input"); sInput.type="hidden"; sInput.name="start"; form.appendChild(sInput); }
+        let tInput = form.querySelector('input[name="target"]');
+        if (!tInput) { tInput = document.createElement("input"); tInput.type="hidden"; tInput.name="target"; form.appendChild(tInput); }
+        sInput.value = data.start;
+        tInput.value = data.target;
+        // Switch to custom mode so Flask uses the pair we pre-fetched
+        form.querySelector('input[name="mode"]').value = "custom";
+      } catch(e) {
+        document.getElementById("rp-start").textContent  = "Error";
+        document.getElementById("rp-target").textContent = "retry";
+      } finally {
+        btn.classList.remove("spinning");
+      }
+    }
+    document.getElementById("btn-reroll").addEventListener("click", loadPair);
+    loadPair();
+  </script>
+</body>
+</html>
