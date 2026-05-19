@@ -4,6 +4,8 @@ Run with:  python app.py
 """
 
 import os
+import re
+import secrets
 from flask import (
     Flask,
     render_template,
@@ -28,15 +30,23 @@ app = Flask(
     static_folder="../static",
     static_url_path="/static",
 )
-app.secret_key = (
-    os.environ.get("FLASK_SECRET_KEY")
-    or os.environ.get("SECRET_KEY")
-    or "wikirace-secret-do-change-in-prod"
-)
+
+
+def _session_secret() -> str:
+    secret = os.environ.get("FLASK_SECRET_KEY") or os.environ.get("SECRET_KEY")
+    if secret:
+        return secret
+    if os.environ.get("VERCEL"):
+        raise RuntimeError("Set FLASK_SECRET_KEY in this Vercel project before deploying.")
+    return secrets.token_hex(32)
+
+
+app.secret_key = _session_secret()
 
 # ── In-memory game store (game_id → GameState) ────────────────────────────────
 # For a multi-user deployment swap this for Redis / DB.
 _games: dict[str, GameState] = {}
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -84,21 +94,52 @@ def _game_from_dict(data: dict) -> GameState | None:
         return None
 
 
+def _normalize_email(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def _valid_email(value: str) -> bool:
+    return bool(_EMAIL_RE.match(value))
+
+
+def _player_email() -> str:
+    return _normalize_email(session.get("player_email"))
+
+
+def _require_player_email(value: str | None = None) -> tuple[str | None, str | None]:
+    email = _normalize_email(value) or _player_email()
+    if not email:
+        return None, "Please enter your email before starting."
+    if not _valid_email(email):
+        return None, "Please enter a valid email address."
+    session["player_email"] = email
+    session.modified = True
+    return email, None
+
+
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 
 @app.route("/")
 def index():
     game = _get_game()
-    return render_template("index.html", active_game=game)
+    return render_template("index.html", active_game=game, player_email=_player_email())
 
 
 @app.route("/new_game", methods=["POST"])
 def start_new_game():
     mode = request.form.get("mode", "random")
+    player_email, email_error = _require_player_email(request.form.get("player_email"))
+    if email_error:
+        return render_template(
+            "index.html",
+            error=email_error,
+            active_game=_get_game(),
+            player_email=_normalize_email(request.form.get("player_email")),
+        )
 
     if mode == "random":
-        start_info, target_info = get_random_pair()
+        start_info, target_info = get_random_pair(player_email)
         start = start_info["title"]
         target = target_info["title"]
     else:
@@ -109,24 +150,28 @@ def start_new_game():
                 "index.html",
                 error="Please enter both a start and a target article.",
                 active_game=_get_game(),
+                player_email=player_email,
             )
         if titles_match(start, target):
             return render_template(
                 "index.html",
                 error="Start and target must be different articles.",
                 active_game=_get_game(),
+                player_email=player_email,
             )
-        if not article_exists(start):
+        if not article_exists(start, player_email):
             return render_template(
                 "index.html",
                 error=f'Article not found: "{start}"',
                 active_game=_get_game(),
+                player_email=player_email,
             )
-        if not article_exists(target):
+        if not article_exists(target, player_email):
             return render_template(
                 "index.html",
                 error=f'Article not found: "{target}"',
                 active_game=_get_game(),
+                player_email=player_email,
             )
 
     game = new_game(start, target)
@@ -140,7 +185,11 @@ def game():
     if not g:
         return redirect(url_for("index"))
 
-    article = get_article(g.current_article)
+    player_email, email_error = _require_player_email()
+    if email_error:
+        return redirect(url_for("index"))
+
+    article = get_article(g.current_article, player_email)
     if not article:
         return render_template(
             "game.html",
@@ -163,6 +212,10 @@ def navigate(raw_title: str):
     if g.is_over:
         return redirect(url_for("game"))
 
+    player_email, email_error = _require_player_email()
+    if email_error:
+        return redirect(url_for("index"))
+
     title = normalize_title(raw_title)
     won = g.navigate(title)
     _save_game(g)
@@ -176,7 +229,7 @@ def navigate(raw_title: str):
                     "state": g.to_dict(),
                 }
             )
-        article = get_article(g.current_article)
+        article = get_article(g.current_article, player_email)
         return jsonify(
             {
                 "status": "playing",
@@ -212,7 +265,10 @@ def api_state():
 
 @app.route("/api/random_pair")
 def api_random_pair():
-    s, t = get_random_pair()
+    player_email, email_error = _require_player_email(request.args.get("player_email"))
+    if email_error:
+        return jsonify({"error": email_error}), 400
+    s, t = get_random_pair(player_email)
     return jsonify({"start": s["title"], "target": t["title"]})
 
 

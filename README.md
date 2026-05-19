@@ -61,6 +61,8 @@ bash run_bot.sh --bot
 3. Reach the **target article** as quickly as possible.
 4. The **stopwatch** tracks your time, and every click is counted.
 
+The web UI asks each player for their email address before loading Wikipedia data. That email is used only as the contact value in the User-Agent header sent to Wikimedia API requests for that player's session, following Wikimedia's API identification policy.
+
 ### Modes
 | Mode | Description |
 |------|-------------|
@@ -204,24 +206,40 @@ For AJAX calls add header `X-Requested-With: XMLHttpRequest` — the server retu
 
 This repo is ready to deploy as a Flask app on Vercel. Vercel uses the `app` object in `api/index.py` and installs dependencies from `requirements.txt`.
 
-### 1. Install and log in
+Each deployer should use their own Vercel account and their own environment secret. Do not share or commit `.vercel/project.json`; it is local Vercel project linkage and is ignored by git.
+
+### 1. Install and log in with your Vercel account
 
 ```bash
 npm i -g vercel
 vercel login
 ```
 
-### 2. Set a production secret
+### 2. Link or create your own Vercel project
 
-In the Vercel dashboard, add an environment variable:
+From the project root:
+
+```bash
+vercel link
+```
+
+Choose your own account/team and project. This creates a local `.vercel/project.json` for your machine only.
+
+### 3. Set your production secret
+
+In the Vercel dashboard, add this environment variable:
 
 ```text
 FLASK_SECRET_KEY=<a long random secret>
 ```
 
-This is used to sign Flask session cookies.
+`FLASK_SECRET_KEY` is used to sign Flask session cookies. The app refuses to start on Vercel without this variable, so deployments do not fall back to a shared secret.
 
-### 3. Deploy
+Players enter their own email in the web UI. That player email is included in the User-Agent sent to Wikimedia API requests for their session, so the deployed app does not use the deployer's email for everyone.
+
+For bot/headless usage, set `WIKIRACE_CONTACT_EMAIL` or a full `WIKIMEDIA_USER_AGENT` in the environment before making Wikipedia API calls.
+
+### 4. Deploy
 
 From the project root:
 

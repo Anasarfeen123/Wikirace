@@ -71,6 +71,7 @@ let currentPath  = [...(WR.path || [])];
 let clicks       = WR.clicks || 0;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
+initCustomCursor();
 stopwatch.start();
 attachLinkHandlers();
 document.body.classList.add("ui-ready");
@@ -344,4 +345,32 @@ function escHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+function initCustomCursor() {
+  const cursor = $("custom-cursor");
+  const finePointer = window.matchMedia("(pointer: fine)");
+  if (!cursor || !finePointer.matches) return;
+
+  const setStateFor = target => {
+    const textTarget = target?.closest?.("input, textarea, [contenteditable='true']");
+    const interactive = target?.closest?.("a, button, input, textarea, select, label, [role='button'], [tabindex]:not([tabindex='-1'])");
+    cursor.classList.toggle("text", Boolean(textTarget));
+    cursor.classList.toggle("hovered", Boolean(interactive) && !textTarget);
+  };
+
+  window.addEventListener("pointermove", e => {
+    cursor.style.setProperty("--cursor-x", `${e.clientX}px`);
+    cursor.style.setProperty("--cursor-y", `${e.clientY}px`);
+    cursor.classList.add("is-visible");
+    setStateFor(e.target);
+  }, { passive: true });
+
+  document.addEventListener("pointerover", e => setStateFor(e.target), { passive: true });
+  document.addEventListener("pointerout", e => {
+    if (!e.relatedTarget) cursor.classList.remove("hovered", "text");
+  }, { passive: true });
+  document.addEventListener("pointerdown", () => cursor.classList.add("clicking"));
+  document.addEventListener("pointerup", () => cursor.classList.remove("clicking"));
+  document.addEventListener("pointercancel", () => cursor.classList.remove("clicking"));
+  document.addEventListener("mouseleave", () => cursor.classList.remove("is-visible", "hovered", "text", "clicking"));
 }

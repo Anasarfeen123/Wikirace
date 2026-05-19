@@ -67,33 +67,98 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   cursor: none; /* we have custom cursor */
+  overflow-x: hidden;
 }
 
 /* Custom cursor */
-#custom-cursor {
-  position: fixed;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--accent);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9999;
-  transform: translate(-50%, -50%);
-  transition: width 0.2s, height 0.2s, background 0.2s, border-color 0.2s;
-  mix-blend-mode: screen;
-}
-#custom-cursor.hovered {
-  width: 28px;
-  height: 28px;
-  background: rgba(0,229,255,0.12);
-  border-color: var(--gold);
-}
-#custom-cursor.clicking {
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
+@media (pointer: fine) {
+  body, a, button, input, textarea, select, [role="button"] {
+    cursor: none !important;
+  }
+
+  #custom-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
+    opacity: 0;
+    transform: translate3d(var(--cursor-x, -40px), var(--cursor-y, -40px), 0) translate(-50%, -50%);
+    will-change: transform, width, height, opacity;
+    transition:
+      width 0.18s cubic-bezier(.2,.8,.2,1),
+      height 0.18s cubic-bezier(.2,.8,.2,1),
+      background 0.18s,
+      border-color 0.18s,
+      opacity 0.12s,
+      box-shadow 0.18s;
+    mix-blend-mode: screen;
+    box-shadow: 0 0 0 1px rgba(0,229,255,0.08), 0 0 22px rgba(0,229,255,0.24);
+  }
+
+  #custom-cursor.is-visible {
+    opacity: 1;
+  }
+
+  #custom-cursor::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: inherit;
+    background: var(--accent);
+    opacity: 0.8;
+    transition: opacity .18s, transform .18s, background .18s;
+  }
+
+  #custom-cursor.hovered {
+    width: 38px;
+    height: 38px;
+    background: rgba(0,229,255,0.10);
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(255,215,0,0.15), 0 0 28px rgba(255,215,0,0.22);
+  }
+
+  #custom-cursor.hovered::after {
+    transform: scale(0.45);
+    background: var(--gold);
+  }
+
+  #custom-cursor.text {
+    width: 8px;
+    height: 30px;
+    border-radius: 999px;
+    background: rgba(0,229,255,0.12);
+  }
+
+  #custom-cursor.text::after {
+    opacity: 0;
+  }
+
+  #custom-cursor.clicking {
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+  }
 }
 a, button, [role="button"] { cursor: none; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (pointer: coarse) {
+  body, a, button, input, textarea, select, [role="button"] {
+    cursor: auto;
+  }
+
+  #custom-cursor {
+    display: none;
+  }
+}
 
 ::selection {
   background: rgba(0,229,255,0.25);
@@ -201,11 +266,12 @@ body::after {
   align-items: flex-start;
   justify-content: center;
   min-height: 100vh;
+  isolation: isolate;
 }
 
 .home-main {
   position: relative; z-index: 1;
-  width: min(640px, 92vw);
+  width: min(720px, 92vw);
   display: flex; flex-direction: column; gap: 20px;
   padding: clamp(28px, 5vw, 60px) 0 60px;
 }
@@ -258,20 +324,24 @@ body::after {
   font-family: var(--font-mono);
   color: var(--text-muted);
   font-size: 0.82rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
+  max-width: 38rem;
+  margin: 0 auto;
 }
 
 /* Hero race animation */
 .hero-race {
   position: relative;
-  min-height: 140px;
+  min-height: 156px;
   overflow: hidden;
   border: 1px solid rgba(0,229,255,0.15);
   border-radius: var(--radius);
-  background: linear-gradient(135deg, rgba(0,229,255,0.06) 0%, transparent 40%),
-              linear-gradient(315deg, rgba(255,215,0,0.07) 0%, transparent 40%),
-              var(--surface);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 80px rgba(0,0,0,0.3);
+  background:
+    linear-gradient(135deg, rgba(0,229,255,0.08) 0%, transparent 42%),
+    linear-gradient(315deg, rgba(255,215,0,0.08) 0%, transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent),
+    rgba(13,18,25,0.92);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 80px rgba(0,0,0,0.34);
 }
 .hero-race::before {
   content: "";
@@ -325,7 +395,7 @@ body::after {
 }
 .hero-race-copy {
   position: absolute;
-  inset: auto 16px 14px;
+  inset: auto 18px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -388,10 +458,11 @@ body::after {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  background: var(--surface);
+  background: rgba(13,18,25,0.84);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
   padding: 4px;
+  box-shadow: 0 16px 50px rgba(0,0,0,0.18);
 }
 .tab-btn {
   background: none; border: none;
@@ -404,7 +475,7 @@ body::after {
   transition: background .15s, color .15s;
 }
 .tab-btn.active {
-  background: rgba(0,229,255,0.12);
+  background: linear-gradient(180deg, rgba(0,229,255,0.16), rgba(0,229,255,0.08));
   color: var(--accent);
   box-shadow: inset 0 0 0 1px rgba(0,229,255,0.2);
 }
@@ -422,7 +493,7 @@ body::after {
 
 /* Forms */
 .game-form {
-  background: var(--surface);
+  background: rgba(13,18,25,0.92);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
   padding: clamp(18px, 4vw, 28px);
@@ -458,7 +529,7 @@ body::after {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  background: var(--bg2);
+  background: rgba(5,8,12,0.64);
   border: 1px solid var(--border2);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
@@ -541,6 +612,7 @@ body::after {
   transition: opacity .15s, transform .1s, box-shadow .2s;
   position: relative;
   overflow: hidden;
+  min-height: 44px;
 }
 .btn::after {
   content: "";
@@ -577,7 +649,7 @@ body::after {
 
 /* Rules card */
 .rules-card {
-  background: var(--surface);
+  background: rgba(13,18,25,0.72);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px 24px;
@@ -602,7 +674,7 @@ body::after {
   padding: 14px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: rgba(13,18,25,0.72);
   position: relative;
   overflow: hidden;
 }
@@ -641,7 +713,7 @@ body::after {
 #hud {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   height: var(--hud-h);
-  background: rgba(5,8,12,0.92);
+  background: rgba(5,8,12,0.88);
   backdrop-filter: blur(24px) saturate(1.4);
   border-bottom: 1px solid rgba(0,229,255,0.12);
   display: flex; align-items: center;
@@ -684,9 +756,9 @@ body::after {
 .hud-brand {
   display: flex; align-items: center;
   width: 108px; flex-shrink: 0;
-  opacity: .85; transition: opacity .2s;
+  opacity: .9; transition: opacity .2s, transform .2s;
 }
-.hud-brand:hover { opacity: 1; }
+.hud-brand:hover { opacity: 1; transform: translateY(-1px); }
 .hud-brand img { display: block; width: 100%; height: auto; }
 
 .hud-section {
@@ -746,7 +818,7 @@ body::after {
   min-width: 88px;
   padding: 7px 12px 4px;
   border-radius: var(--radius-sm);
-  background: var(--surface2);
+  background: rgba(17,24,35,0.9);
   border: 1px solid var(--border2);
   transition: color .3s, border-color .3s;
 }
@@ -773,7 +845,7 @@ body::after {
   display: flex; align-items: center; gap: 6px; flex-shrink: 0;
 }
 .btn-icon-hud {
-  background: var(--surface2); border: 1px solid var(--border2);
+  background: rgba(17,24,35,0.9); border: 1px solid var(--border2);
   color: var(--text-muted);
   min-width: 36px; height: 36px; border-radius: var(--radius-sm);
   cursor: none; font-size: 0.95rem;
@@ -960,8 +1032,8 @@ body::after {
 /* Content */
 #content-wrap {
   flex: 1;
-  padding: 28px 22px 80px;
-  max-width: calc(var(--article-max) + 100px);
+  padding: 30px 22px 84px;
+  max-width: calc(var(--article-max) + 132px);
   margin: 0 auto;
   width: 100%;
   position: relative; z-index: 1;
@@ -969,10 +1041,10 @@ body::after {
 
 /* ── Article header ──────────────────────────────────────────────────────── */
 #article-header {
-  background: var(--surface);
+  background: rgba(13,18,25,0.9);
   border: 1px solid rgba(0,229,255,0.14);
   border-radius: var(--radius);
-  padding: 22px 24px;
+  padding: 24px 26px;
   margin-bottom: 18px;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset, 0 20px 60px rgba(0,0,0,0.25);
   position: relative; overflow: hidden;
@@ -1015,7 +1087,7 @@ body::after {
 }
 #article-title {
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-size: clamp(1.7rem, 4vw, 2.35rem);
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
@@ -1088,14 +1160,14 @@ body::after {
 /* ── Article body ────────────────────────────────────────────────────────── */
 #article-body {
   font-family: var(--font-content);
-  font-size: 1.04rem;
-  line-height: 1.78;
+  font-size: 1.06rem;
+  line-height: 1.82;
   color: var(--text);
-  background: rgba(8,12,18,0.92);
-  border: 1px solid rgba(0,229,255,0.08);
+  background: rgba(8,12,18,0.88);
+  border: 1px solid rgba(180,220,255,0.10);
   border-radius: var(--radius);
-  padding: 28px 30px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  padding: clamp(20px, 4vw, 34px);
+  box-shadow: 0 20px 70px rgba(0,0,0,0.24);
   transition: opacity .2s;
 }
 .article-enter { animation: article-enter .4s ease both; }
@@ -1132,6 +1204,9 @@ body::after {
   text-decoration-color: var(--accent);
   background: rgba(0,229,255,0.1);
   box-shadow: 0 0 0 3px rgba(0,229,255,0.07);
+}
+#article-body a.wikirace-link:focus-visible {
+  outline-offset: 2px;
 }
 #article-body a.wikirace-link.hot-link {
   color: var(--target-col);
@@ -1175,7 +1250,7 @@ body::after {
 #article-body .infobox, #article-body .wikitable {
   float: right; max-width: 280px;
   margin: 0 0 20px 24px;
-  background: var(--surface);
+  background: rgba(13,18,25,0.96);
   border: 1px solid var(--border2) !important;
   border-radius: var(--radius-sm);
   font-size: 0.82rem; clear: right; overflow: hidden; display: table;
@@ -1416,7 +1491,7 @@ kbd {
   padding: 10px 16px;
   border: 1px solid rgba(0,229,255,0.25);
   border-radius: var(--radius-sm);
-  background: rgba(5,8,12,0.92);
+  background: rgba(5,8,12,0.94);
   color: var(--text);
   box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(0,229,255,0.1);
   font-family: var(--font-mono);

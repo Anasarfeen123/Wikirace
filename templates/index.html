@@ -66,6 +66,12 @@
           Two Wikipedia articles are chosen at random.<br />
           Can you find a path between them?
         </p>
+        <div class="field-row">
+          <label for="player-email-random">Your email for Wikimedia requests</label>
+          <input type="email" id="player-email-random" name="player_email"
+                 placeholder="you@example.com" autocomplete="email"
+                 value="{{ player_email or '' }}" required />
+        </div>
         <div class="random-preview" id="random-preview">
           <div class="rp-article">
             <span class="rp-label">Start</span>
@@ -88,6 +94,12 @@
     <div class="tab-panel" id="tab-custom">
       <form action="/new_game" method="post" class="game-form">
         <input type="hidden" name="mode" value="custom" />
+        <div class="field-row">
+          <label for="player-email-custom">Your email for Wikimedia requests</label>
+          <input type="email" id="player-email-custom" name="player_email"
+                 placeholder="you@example.com" autocomplete="email"
+                 value="{{ player_email or '' }}" required />
+        </div>
         <div class="field-row">
           <label for="start">Start article</label>
           <input type="text" id="start" name="start"
@@ -145,13 +157,39 @@
     });
 
     // ── Random pair preview ───────────────────────────────────────────────────
+    function getPlayerEmail() {
+      return (
+        document.getElementById("player-email-random")?.value ||
+        document.getElementById("player-email-custom")?.value ||
+        ""
+      ).trim();
+    }
+
+    function syncPlayerEmail(value) {
+      document.querySelectorAll('input[name="player_email"]').forEach(input => {
+        if (input.value !== value) input.value = value;
+      });
+    }
+
+    document.querySelectorAll('input[name="player_email"]').forEach(input => {
+      input.addEventListener("input", () => syncPlayerEmail(input.value));
+    });
+
     async function loadPair() {
       const btn = document.getElementById("btn-reroll");
+      const email = getPlayerEmail();
+      if (!email) {
+        document.getElementById("rp-start").textContent  = "Enter email";
+        document.getElementById("rp-target").textContent = "then reroll";
+        return;
+      }
       btn.classList.add("spinning");
       document.getElementById("rp-start").textContent  = "…";
       document.getElementById("rp-target").textContent = "…";
       try {
-        const res  = await fetch("/api/random_pair");
+        const params = new URLSearchParams({ player_email: email });
+        const res  = await fetch(`/api/random_pair?${params}`);
+        if (!res.ok) throw new Error("Could not load random pair");
         const data = await res.json();
         document.getElementById("rp-start").textContent  = data.start;
         document.getElementById("rp-target").textContent = data.target;
@@ -174,6 +212,35 @@
     }
     document.getElementById("btn-reroll").addEventListener("click", loadPair);
     loadPair();
+    function initCustomCursor() {
+      const cursor = document.getElementById("custom-cursor");
+      const finePointer = window.matchMedia("(pointer: fine)");
+      if (!cursor || !finePointer.matches) return;
+
+      const setStateFor = target => {
+        const textTarget = target?.closest?.("input, textarea, [contenteditable='true']");
+        const interactive = target?.closest?.("a, button, input, textarea, select, label, [role='button'], [tabindex]:not([tabindex='-1'])");
+        cursor.classList.toggle("text", Boolean(textTarget));
+        cursor.classList.toggle("hovered", Boolean(interactive) && !textTarget);
+      };
+
+      window.addEventListener("pointermove", e => {
+        cursor.style.setProperty("--cursor-x", `${e.clientX}px`);
+        cursor.style.setProperty("--cursor-y", `${e.clientY}px`);
+        cursor.classList.add("is-visible");
+        setStateFor(e.target);
+      }, { passive: true });
+
+      document.addEventListener("pointerover", e => setStateFor(e.target), { passive: true });
+      document.addEventListener("pointerout", e => {
+        if (!e.relatedTarget) cursor.classList.remove("hovered", "text");
+      }, { passive: true });
+      document.addEventListener("pointerdown", () => cursor.classList.add("clicking"));
+      document.addEventListener("pointerup", () => cursor.classList.remove("clicking"));
+      document.addEventListener("pointercancel", () => cursor.classList.remove("clicking"));
+      document.addEventListener("mouseleave", () => cursor.classList.remove("is-visible", "hovered", "text", "clicking"));
+    }
+    initCustomCursor();
   </script>
 </body>
 </html>

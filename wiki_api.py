@@ -4,6 +4,7 @@ wiki_api.py — Wikipedia API wrapper with in-memory caching.
 
 import re
 import time
+import os
 import requests
 from bs4 import BeautifulSoup
 from typing import Optional
@@ -11,8 +12,33 @@ from typing import Optional
 # ─── Constants ────────────────────────────────────────────────────────────────
 API_URL   = "https://en.wikipedia.org/w/api.php"
 REST_URL  = "https://en.wikipedia.org/api/rest_v1"
-HEADERS   = {"User-Agent": "WikiRaceGame/1.0 (educational project)"}
 TIMEOUT   = 10
+
+
+def _clean_header_value(value: str) -> str:
+    return value.replace("\n", " ").replace("\r", " ").strip()
+
+
+def _build_headers(contact_email: str | None = None) -> dict[str, str]:
+    user_agent = os.environ.get("WIKIMEDIA_USER_AGENT")
+    if user_agent:
+        return {"User-Agent": _clean_header_value(user_agent)}
+
+    contact = (
+        contact_email
+        or os.environ.get("WIKIRACE_CONTACT_EMAIL")
+        or os.environ.get("WIKIMEDIA_CONTACT_EMAIL")
+    )
+    if contact:
+        clean_contact = _clean_header_value(contact)
+        return {"User-Agent": f"WikiRace/1.0 ({clean_contact})"}
+
+    if os.environ.get("VERCEL"):
+        raise RuntimeError(
+            "Set a player contact email or WIKIMEDIA_USER_AGENT for Wikimedia API requests."
+        )
+
+    return {"User-Agent": "WikiRace/1.0 (local development; provide a contact email)"}
 
 # Namespaces that are NOT valid game targets (main namespace = 0 is valid)
 _NS_PATTERN = re.compile(
@@ -54,28 +80,28 @@ def titles_match(a: str, b: str) -> bool:
     return normalize_title(a).lower() == normalize_title(b).lower()
 
 
-def get_random_article() -> dict:
+def get_random_article(contact_email: str | None = None) -> dict:
     """Return {'title': str, 'pageid': int} for a random main-namespace article."""
     params = {
         "action": "query", "format": "json",
         "list": "random", "rnnamespace": 0, "rnlimit": 1,
     }
-    r = requests.get(API_URL, params=params, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(API_URL, params=params, headers=_build_headers(contact_email), timeout=TIMEOUT)
     r.raise_for_status()
     page = r.json()["query"]["random"][0]
     return {"title": page["title"], "pageid": page["id"]}
 
 
-def get_random_pair() -> tuple[dict, dict]:
+def get_random_pair(contact_email: str | None = None) -> tuple[dict, dict]:
     """Return two distinct random articles (start, target)."""
-    a = get_random_article()
-    b = get_random_article()
+    a = get_random_article(contact_email)
+    b = get_random_article(contact_email)
     while titles_match(a["title"], b["title"]):
-        b = get_random_article()
+        b = get_random_article(contact_email)
     return a, b
 
 
-def get_article(title: str) -> Optional[dict]:
+def get_article(title: str, contact_email: str | None = None) -> Optional[dict]:
     """
     Fetch and return article data:
       {title, display_title, html (cleaned), links (list[str])}
@@ -94,7 +120,7 @@ def get_article(title: str) -> Optional[dict]:
         "disabletoc": True,
         "mobileformat": False,
     }
-    r = requests.get(API_URL, params=params, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(API_URL, params=params, headers=_build_headers(contact_email), timeout=TIMEOUT)
     r.raise_for_status()
     data = r.json()
 
@@ -118,22 +144,22 @@ def get_article(title: str) -> Optional[dict]:
     return result
 
 
-def get_article_links(title: str) -> list[str]:
+def get_article_links(title: str, contact_email: str | None = None) -> list[str]:
     """Return list of main-namespace link titles from an article (for bots)."""
-    article = get_article(title)
+    article = get_article(title, contact_email)
     if not article:
         return []
     return article["links"]
 
 
-def article_exists(title: str) -> bool:
+def article_exists(title: str, contact_email: str | None = None) -> bool:
     """Check if a main-namespace article exists."""
     params = {
         "action": "query", "format": "json",
         "titles": normalize_title(title),
         "redirects": True,
     }
-    r = requests.get(API_URL, params=params, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(API_URL, params=params, headers=_build_headers(contact_email), timeout=TIMEOUT)
     r.raise_for_status()
     pages = r.json()["query"]["pages"]
     return "-1" not in pages
