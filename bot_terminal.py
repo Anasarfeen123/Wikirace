@@ -41,7 +41,7 @@ import argparse
 import readline  # noqa: F401 — enables arrow-key history in interactive mode
 
 from game_core import new_game, GameState, format_time
-from wiki_api  import get_random_pair, get_article_links, article_exists, normalize_title
+from wiki_api  import get_random_pair, get_article_links, article_exists, normalize_title, titles_match
 
 
 # ── ANSI colours (disabled in --bot mode) ────────────────────────────────────
@@ -119,6 +119,12 @@ def cmd_navigate(article: str) -> dict:
     if game.is_over:
         return _err("Game is already over.")
     article = normalize_title(article)
+    links = get_article_links(game.current_article)
+    if not any(titles_match(article, link) for link in links):
+        return _err(
+            f"Cannot navigate to '{article}'. "
+            f"Choose one of the {len(links)} links on '{game.current_article}'."
+        )
     try:
         won = game.navigate(article)
     except ValueError as e:
