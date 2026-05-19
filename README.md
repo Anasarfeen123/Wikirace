@@ -206,7 +206,7 @@ For AJAX calls add header `X-Requested-With: XMLHttpRequest` — the server retu
 
 This repo is ready to deploy as a Flask app on Vercel. Vercel uses the `app` object in `api/index.py` and installs dependencies from `requirements.txt`.
 
-Each deployer should use their own Vercel account and their own environment secret. Do not share or commit `.vercel/project.json`; it is local Vercel project linkage and is ignored by git.
+Each deployer should use their own Vercel account. Do not share or commit `.vercel/project.json`; it is local Vercel project linkage and is ignored by git.
 
 ### 1. Install and log in with your Vercel account
 
@@ -225,7 +225,7 @@ vercel link
 
 Choose your own account/team and project. This creates a local `.vercel/project.json` for your machine only.
 
-### 3. Set your production secret
+### 3. Set a production session secret
 
 In the Vercel dashboard, add this environment variable:
 
@@ -233,7 +233,7 @@ In the Vercel dashboard, add this environment variable:
 FLASK_SECRET_KEY=<a long random secret>
 ```
 
-`FLASK_SECRET_KEY` is used to sign Flask session cookies. The app refuses to start on Vercel without this variable, so deployments do not fall back to a shared secret.
+`FLASK_SECRET_KEY` is used to sign Flask session cookies. The app can start without it, but Vercel cold starts may invalidate active sessions, so setting it is recommended.
 
 Players enter their own email in the web UI. That player email is included in the User-Agent sent to Wikimedia API requests for their session, so the deployed app does not use the deployer's email for everyone.
 

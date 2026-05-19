@@ -19,6 +19,16 @@ def _clean_header_value(value: str) -> str:
     return value.replace("\n", " ").replace("\r", " ").strip()
 
 
+def _contact_cache_key(contact_email: str | None = None) -> str:
+    return _clean_header_value(
+        contact_email
+        or os.environ.get("WIKIRACE_CONTACT_EMAIL")
+        or os.environ.get("WIKIMEDIA_CONTACT_EMAIL")
+        or os.environ.get("WIKIMEDIA_USER_AGENT")
+        or "local"
+    ).lower()
+
+
 def _build_headers(contact_email: str | None = None) -> dict[str, str]:
     user_agent = os.environ.get("WIKIMEDIA_USER_AGENT")
     if user_agent:
@@ -32,11 +42,6 @@ def _build_headers(contact_email: str | None = None) -> dict[str, str]:
     if contact:
         clean_contact = _clean_header_value(contact)
         return {"User-Agent": f"WikiRace/1.0 ({clean_contact})"}
-
-    if os.environ.get("VERCEL"):
-        raise RuntimeError(
-            "Set a player contact email or WIKIMEDIA_USER_AGENT for Wikimedia API requests."
-        )
 
     return {"User-Agent": "WikiRace/1.0 (local development; provide a contact email)"}
 
@@ -107,7 +112,7 @@ def get_article(title: str, contact_email: str | None = None) -> Optional[dict]:
       {title, display_title, html (cleaned), links (list[str])}
     Returns None if article not found.
     """
-    key = normalize_title(title).lower()
+    key = f"{_contact_cache_key(contact_email)}:{normalize_title(title).lower()}"
     cached = _cache_get(key)
     if cached:
         return cached

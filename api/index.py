@@ -36,8 +36,6 @@ def _session_secret() -> str:
     secret = os.environ.get("FLASK_SECRET_KEY") or os.environ.get("SECRET_KEY")
     if secret:
         return secret
-    if os.environ.get("VERCEL"):
-        raise RuntimeError("Set FLASK_SECRET_KEY in this Vercel project before deploying.")
     return secrets.token_hex(32)
 
 
