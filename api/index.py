@@ -5,7 +5,6 @@ Run with:  python app.py
 
 import os
 import re
-import secrets
 from flask import (
     Flask,
     render_template,
@@ -36,7 +35,7 @@ def _session_secret() -> str:
     secret = os.environ.get("FLASK_SECRET_KEY") or os.environ.get("SECRET_KEY")
     if secret:
         return secret
-    return secrets.token_hex(32)
+    return "wikirace-local-session-key-change-in-production"
 
 
 app.secret_key = _session_secret()
@@ -183,7 +182,7 @@ def game():
     if not g:
         return redirect(url_for("index"))
 
-    player_email, email_error = _require_player_email()
+    player_email, email_error = _require_player_email(request.args.get("player_email"))
     if email_error:
         return redirect(url_for("index"))
 
@@ -194,8 +193,9 @@ def game():
             game=g,
             article=None,
             error=f"Could not load article: {g.current_article}",
+            player_email=player_email,
         )
-    return render_template("game.html", game=g, article=article)
+    return render_template("game.html", game=g, article=article, player_email=player_email)
 
 
 @app.route("/navigate/<path:raw_title>")
@@ -210,7 +210,7 @@ def navigate(raw_title: str):
     if g.is_over:
         return redirect(url_for("game"))
 
-    player_email, email_error = _require_player_email()
+    player_email, email_error = _require_player_email(request.args.get("player_email"))
     if email_error:
         return redirect(url_for("index"))
 

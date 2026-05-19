@@ -166,9 +166,16 @@
     }
 
     function syncPlayerEmail(value) {
+      const email = value.trim().toLowerCase();
+      if (email) localStorage.setItem("wikirace.playerEmail", email);
       document.querySelectorAll('input[name="player_email"]').forEach(input => {
         if (input.value !== value) input.value = value;
       });
+    }
+
+    const savedPlayerEmail = localStorage.getItem("wikirace.playerEmail") || "";
+    if (savedPlayerEmail && !getPlayerEmail()) {
+      syncPlayerEmail(savedPlayerEmail);
     }
 
     document.querySelectorAll('input[name="player_email"]').forEach(input => {

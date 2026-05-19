@@ -69,8 +69,10 @@ const linkCountBadge = $("link-count-badge");
 let isNavigating = false;
 let currentPath  = [...(WR.path || [])];
 let clicks       = WR.clicks || 0;
+const playerEmail = (WR.playerEmail || localStorage.getItem("wikirace.playerEmail") || "").trim();
 
 // ── Init ─────────────────────────────────────────────────────────────────────
+if (playerEmail) localStorage.setItem("wikirace.playerEmail", playerEmail);
 initCustomCursor();
 stopwatch.start();
 attachLinkHandlers();
@@ -121,8 +123,9 @@ async function handleLinkClick(e) {
   e.preventDefault();
   if (isNavigating || WR.status !== "playing") return;
 
-  const href    = e.currentTarget.getAttribute("href");   // /navigate/Article_Name
-  const article = e.currentTarget.dataset.article || decodeURIComponent(href.replace("/navigate/", "")).replace(/_/g, " ");
+  const rawHref = e.currentTarget.getAttribute("href");   // /navigate/Article_Name
+  const href    = withPlayerEmail(rawHref);
+  const article = e.currentTarget.dataset.article || decodeURIComponent(rawHref.replace("/navigate/", "")).replace(/_/g, " ");
 
   isNavigating = true;
   e.currentTarget.classList.add("link-launching");
@@ -184,6 +187,13 @@ function renderArticle(displayTitle, html) {
 function showSpinner(show) {
   navSpinner?.classList.toggle("hidden", !show);
   if (articleBody) articleBody.style.opacity = show ? "0.4" : "1";
+}
+
+function withPlayerEmail(href) {
+  if (!playerEmail) return href;
+  const url = new URL(href, window.location.origin);
+  url.searchParams.set("player_email", playerEmail);
+  return `${url.pathname}${url.search}`;
 }
 
 function updatePathSidebar(path) {
