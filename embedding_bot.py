@@ -3,11 +3,18 @@ import json
 import sys
 import os
 import random
+
+
+#**********************************************************
 from sentence_transformers import SentenceTransformer, util
+#**********************************************************
 
 print("Loading transformer model (this takes a few seconds)...")
+
+#**********************************************************
 # This downloads a highly optimized, state-of-the-art semantic similarity model
 model = SentenceTransformer("all-MiniLM-L6-v2")
+#**********************************************************
 
 
 def start_bot_process():
@@ -112,7 +119,7 @@ def play_game():
         state = nav_res["state"]
 
         if nav_res.get("won"):
-            print(f"\n🏆 WON THE RACE!")
+            print("\n🏆 WON THE RACE!")
             print(f"Path length: {state['clicks']} clicks")
             print(f"Time: {state['elapsed_str']}")
             break
