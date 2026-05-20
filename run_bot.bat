@@ -12,6 +12,15 @@ if not exist "%VENV%" (
     if errorlevel 1 exit /b 1
 )
 
+echo.
+echo ============================================================
+echo   PROMPT: Start Bot Terminal
+echo   DETAIL: This opens an interactive terminal for bots.
+echo ============================================================
+choice /M "Proceed?"
+echo.
+if errorlevel 2 exit /b 1
+
 call "%VENV%\Scripts\activate.bat"
 cd /d "%SCRIPT_DIR%"
 python bot_terminal.py %*

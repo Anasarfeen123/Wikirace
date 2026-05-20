@@ -35,6 +35,21 @@ echo  After installing Python, re-run this script.
 pause
 exit /b 1
 
+:confirm
+echo.
+echo ============================================================
+echo   PROMPT: %~1
+echo   DETAIL: %~2
+echo ============================================================
+choice /M "Proceed?"
+echo.
+if errorlevel 2 (
+    echo [error] Aborted by user.
+    pause
+    exit /b 1
+)
+goto :eof
+
 :found_python
 echo [setup] Found Python: %PYTHON%
 %PYTHON% --version
@@ -43,11 +58,11 @@ REM ── 2. Virtual environment ───────────────�
 set VENV_DIR=%~dp0.venv
 
 if not exist "%VENV_DIR%" (
+    call :confirm "Create Virtual Environment" "This creates an isolated folder (.venv) to store dependencies."
     echo [setup] Creating virtual environment at .venv ...
     %PYTHON% -m venv "%VENV_DIR%"
     if errorlevel 1 (
         echo [error] Could not create virtual environment.
-        echo         Try: %PYTHON% -m pip install virtualenv
         pause
         exit /b 1
     )
@@ -56,16 +71,18 @@ if not exist "%VENV_DIR%" (
 )
 
 REM ── 3. Activate and install dependencies ─────────────────
+call :confirm "Upgrade pip and install dependencies" "This installs the libraries WikiRace needs to run."
 echo [setup] Activating virtual environment...
 call "%VENV_DIR%\Scripts\activate.bat"
 
 echo [setup] Upgrading pip...
-pip install --upgrade pip --quiet
-if errorlevel 1 goto :install_failed
+python -m pip install --upgrade pip --quiet
 
 echo [setup] Installing dependencies...
 pip install -r "%~dp0requirements.txt" --quiet
-if errorlevel 1 goto :install_failed
+
+call :confirm "AI Warmup" "This downloads the AI model (approx 80MB). One-time download."
+python "%~dp00_warmup.py"
 
 echo.
 echo ============================
@@ -85,6 +102,6 @@ exit /b 0
 echo.
 echo [error] Setup did not finish.
 echo         Check your internet connection, then run setup.bat again.
-echo         If it still fails, copy the error above and send it to the person who shared WikiRace with you.
+echo         If it still fails, copy the error above and send email to "codecrusader07@gmail.com".
 pause
 exit /b 1

@@ -88,7 +88,16 @@ If you prefer to set up and run separately:
 
 This installs dependencies into a `.venv` folder inside the project.
 
-### 2. Play in Browser
+### 2. AI Warmup (run once, right after setup)
+
+This downloads the bot's AI model now, so the first bot run does not look frozen.
+
+| System | Command |
+|--------|---------|
+| macOS / Linux | `.venv/bin/python 0_warmup.py` |
+| Windows | `.venv\Scripts\python 0_warmup.py` |
+
+### 3. Play in Browser
 
 | System | Command |
 |--------|---------|
@@ -97,7 +106,7 @@ This installs dependencies into a `.venv` folder inside the project.
 
 The browser UI opens automatically at `http://127.0.0.1:5000`.
 
-### 3. Bot Terminal
+### 4. Bot Terminal
 
 **Interactive mode** (for testing or playing in the terminal):
 ```bash
@@ -137,6 +146,7 @@ wikirace/
 ├── app.py              # Local Flask launcher
 ├── api/index.py        # Flask web application (human UI + Vercel entrypoint)
 ├── bot_terminal.py     # Terminal interface (human + bots)
+├── 0_warmup.py         # Downloads the AI model before class starts
 ├── game_core.py        # Core game state & logic (shared)
 ├── wiki_api.py         # Wikipedia API wrapper with caching
 ├── requirements.txt    # Python dependencies

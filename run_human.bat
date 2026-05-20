@@ -9,6 +9,15 @@ if not exist "%VENV%" (
     if errorlevel 1 exit /b 1
 )
 
+echo.
+echo ============================================================
+echo   PROMPT: Start WikiRace
+echo   DETAIL: This launches the web server and opens your browser.
+echo ============================================================
+choice /M "Proceed?"
+echo.
+if errorlevel 2 exit /b 1
+
 call "%VENV%\Scripts\activate.bat"
 cd /d "%SCRIPT_DIR%"
 echo.
