@@ -1,0 +1,32 @@
+{
+  "name": "WikiRace Workshop",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.inlineSuggest.enabled": false,
+        "github.copilot.enable": {
+          "*": false
+        },
+        "editor.fontSize": 16,
+        "editor.minimap.enabled": false,
+        "workbench.colorTheme": "Default Dark Modern"
+      },
+      "extensions": [
+        "ms-python.python",
+        "formulahendry.code-runner",
+        "usernamehw.errorlens"
+      ]
+    }
+  },
+  "forwardPorts": [
+    5000
+  ],
+  "portsAttributes": {
+    "5000": {
+      "label": "WikiRace Web UI",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "pip install -r requirements.txt && python -c \"from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')\""
+}
