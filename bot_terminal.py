@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-bot_terminal.py — Terminal interface for WikiRace bots.
+bot_terminal.py — Beginner-friendly terminal interface for WikiRace.
 
 ════════════════════════════════════════════════════════════════════════════
   INTERACTIVE MODE (for humans / testing)
     python bot_terminal.py
 
+  RANDOM GAME
+    python bot_terminal.py --random
+
+  CUSTOM GAME
+    python bot_terminal.py --start "Python (programming language)" --stop "Albert Einstein"
+
   BOT / PIPE MODE  (read JSON commands from stdin, write JSON to stdout)
     python bot_terminal.py --bot
 
-  PRESET GAME
-    python bot_terminal.py --start "Python (programming language)" --target "Albert Einstein"
+  BOT / PIPE MODE WITH A CUSTOM GAME
+    python bot_terminal.py --bot --start "Banana" --stop "Black hole"
 ════════════════════════════════════════════════════════════════════════════
 
 JSON PROTOCOL
@@ -36,15 +42,16 @@ Responses (one JSON object per line, written to stdout):
 
 import sys
 import json
-import time
 import argparse
 import readline  # noqa: F401 — enables arrow-key history in interactive mode
 
-from game_core import new_game, GameState, format_time
+from game_core import new_game, GameState
 from wiki_api  import get_random_pair, get_article_links, article_exists, normalize_title, titles_match
 
 
-# ── ANSI colours (disabled in --bot mode) ────────────────────────────────────
+# ── ANSI colours ──────────────────────────────────────────────────────────────
+# These escape codes make the interactive terminal easier to read.
+# They are automatically disabled in bot mode so JSON output stays clean.
 class C:
     RESET  = "\033[0m"
     BOLD   = "\033[1m"
@@ -53,25 +60,28 @@ class C:
     YELLOW = "\033[93m"
     CYAN   = "\033[96m"
     RED    = "\033[91m"
-    BLUE   = "\033[94m"
     WHITE  = "\033[97m"
-    MAGENTA = "\033[95m"
 
-BOT_MODE = False  # set by --bot flag
+BOT_MODE = False  # Set by --bot. When True, print only machine-readable JSON.
 
 
 def _c(code: str, text: str) -> str:
+    """Apply terminal colour in interactive mode; return plain text in bot mode."""
     return f"{code}{text}{C.RESET}" if not BOT_MODE else text
 
 
 # ── State ─────────────────────────────────────────────────────────────────────
+# The terminal runs one game at a time. All commands read or update this object.
 game: GameState | None = None
 
 
 # ── Command handlers ─────────────────────────────────────────────────────────
 
 def cmd_new_game(start: str = "", target: str = "") -> dict:
+    """Start a new game, either custom or random."""
     global game
+
+    # Custom game: the user/bot provided both article names.
     if start and target:
         start  = normalize_title(start)
         target = normalize_title(target)
@@ -79,6 +89,8 @@ def cmd_new_game(start: str = "", target: str = "") -> dict:
             return _err(f"Article not found: '{start}'")
         if not article_exists(target):
             return _err(f"Article not found: '{target}'")
+
+    # Random game: no custom pair was provided, so ask Wikipedia for two pages.
     else:
         _log("⏳  Fetching random article pair…")
         s_info, t_info = get_random_pair()
@@ -92,6 +104,7 @@ def cmd_new_game(start: str = "", target: str = "") -> dict:
 
 
 def cmd_state() -> dict:
+    """Show the current game details."""
     if not game:
         return _err("No active game.")
     _print_state()
@@ -99,6 +112,7 @@ def cmd_state() -> dict:
 
 
 def cmd_links() -> dict:
+    """List valid links from the current article."""
     if not game:
         return _err("No active game.")
     _log(f"⏳  Loading links from '{game.current_article}'…")
@@ -114,6 +128,7 @@ def cmd_links() -> dict:
 
 
 def cmd_navigate(article: str) -> dict:
+    """Move from the current article to another article link."""
     if not game:
         return _err("No active game.")
     if game.is_over:
@@ -145,6 +160,7 @@ def cmd_navigate(article: str) -> dict:
 
 
 def cmd_give_up() -> dict:
+    """End the current game without winning."""
     if not game:
         return _err("No active game.")
     game.give_up()
@@ -154,11 +170,14 @@ def cmd_give_up() -> dict:
 
 
 def cmd_help() -> dict:
+    """Print commands for people using the interactive terminal."""
     _log(f"""
   {_c(C.BOLD, 'WikiRace Bot Terminal')}  {_c(C.DIM, '— commands')}
 
-  {_c(C.CYAN, 'new_game')}                   Start game with random articles
-  {_c(C.CYAN, 'new_game <start> <target>')}  Start game with specified articles
+  {_c(C.CYAN, 'new_game')}                  Start game with random articles
+  {_c(C.CYAN, 'random')}                    Same as new_game
+  {_c(C.CYAN, 'new_game <start> <stop>')}   Start game with specific articles
+  {_c(C.CYAN, 'start <start> <stop>')}      Same as new_game <start> <stop>
   {_c(C.CYAN, 'state')}                      Show current game state
   {_c(C.CYAN, 'links')}                      List links in current article
   {_c(C.CYAN, 'navigate <article>')}         Navigate to an article
@@ -172,16 +191,19 @@ def cmd_help() -> dict:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _err(msg: str) -> dict:
+    """Return a standard error response and print it for humans."""
     _log(_c(C.RED, f"  ✗  {msg}"))
     return {"ok": False, "error": msg}
 
 
 def _log(msg: str):
+    """Print only in interactive mode. Bot mode must keep stdout as JSON only."""
     if not BOT_MODE:
         print(msg)
 
 
 def _print_state():
+    """Pretty-print the current game state for interactive users."""
     if not game:
         return
     _log(f"\n  {_c(C.DIM, 'Game')}     {game.game_id}")
@@ -195,6 +217,7 @@ def _print_state():
 
 
 def _print_path():
+    """Print the full path taken so far."""
     if not game or not game.path:
         return
     _log(f"\n  {_c(C.DIM, 'Path:')}")
@@ -208,7 +231,15 @@ def _print_path():
 # ── Interactive mode parser ───────────────────────────────────────────────────
 
 def _parse_interactive(line: str) -> dict | None:
-    """Parse a freeform human command into {cmd, ...} dict. Returns None for unknown."""
+    """
+    Convert a human command into the same dictionary shape used by bot mode.
+
+    Examples:
+      new_game
+      random
+      new_game Banana Black hole
+      navigate Fruit
+    """
     parts = line.strip().split(None, 2)
     if not parts:
         return None
@@ -224,6 +255,8 @@ def _parse_interactive(line: str) -> dict | None:
         return {"cmd": "links"}
     if verb in ("g", "give_up", "giveup", "surrender"):
         return {"cmd": "give_up"}
+    if verb in ("r", "random", "randomize"):
+        return {"cmd": "new_game"}
     if verb in ("n", "new", "new_game", "start"):
         if len(parts) >= 3:
             return {"cmd": "new_game", "start": parts[1], "target": parts[2]}
@@ -241,9 +274,10 @@ def _parse_interactive(line: str) -> dict | None:
 # ── Dispatch ──────────────────────────────────────────────────────────────────
 
 def dispatch(cmd_obj: dict) -> dict:
+    """Route one parsed command to the correct command handler."""
     cmd = cmd_obj.get("cmd", "").lower()
     if cmd == "new_game":
-        return cmd_new_game(cmd_obj.get("start",""), cmd_obj.get("target",""))
+        return cmd_new_game(cmd_obj.get("start", ""), cmd_obj.get("target", ""))
     if cmd == "state":
         return cmd_state()
     if cmd == "links":
@@ -264,8 +298,20 @@ def dispatch(cmd_obj: dict) -> dict:
 
 # ── Entry points ──────────────────────────────────────────────────────────────
 
-def run_bot_mode():
+def _initial_game_command(random_game: bool, start: str, target: str) -> dict | None:
+    """Build the optional command-line game that should run before the prompt."""
+    if random_game:
+        return {"cmd": "new_game"}
+    if start and target:
+        return {"cmd": "new_game", "start": start, "target": target}
+    return None
+
+
+def run_bot_mode(initial_command: dict | None = None):
     """Read JSON lines from stdin, write JSON lines to stdout."""
+    if initial_command:
+        print(json.dumps(dispatch(initial_command)), flush=True)
+
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
         if not raw_line:
@@ -284,8 +330,8 @@ def run_bot_mode():
             break
 
 
-def run_interactive_mode(start: str = "", target: str = ""):
-    """Pretty interactive CLI for humans."""
+def run_interactive_mode(initial_command: dict | None = None):
+    """Run the colourful human terminal interface."""
     print(f"""
   ╔══════════════════════════════════════════╗
   ║  {_c(C.BOLD+C.CYAN, 'W')+_c(C.BOLD,'iki')+_c(C.BOLD+C.YELLOW,'Race')}  — Bot Terminal           ║
@@ -293,10 +339,10 @@ def run_interactive_mode(start: str = "", target: str = ""):
   ╚══════════════════════════════════════════╝
 """)
 
-    if start and target:
-        dispatch({"cmd": "new_game", "start": start, "target": target})
+    if initial_command:
+        dispatch(initial_command)
     else:
-        _log(_c(C.DIM, "  Tip: type 'new_game' to start, or 'new_game <start> <target>'\n"))
+        _log(_c(C.DIM, "  Tip: type 'random' to randomize articles, or 'start <start article> <stop article>'\n"))
 
     while True:
         try:
@@ -340,23 +386,35 @@ def run_interactive_mode(start: str = "", target: str = ""):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    """Parse command-line options, then start either bot mode or interactive mode."""
     global BOT_MODE
     parser = argparse.ArgumentParser(
         description="WikiRace Terminal — for bots and humans.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--bot",    action="store_true", help="Bot/pipe mode: read JSON from stdin, write JSON to stdout.")
-    parser.add_argument("--start",  default="", help="Start article (optional).")
-    parser.add_argument("--target", default="", help="Target article (optional).")
+    parser.add_argument("--bot", action="store_true", help="Bot mode: read JSON from stdin and write JSON to stdout.")
+    parser.add_argument("--random", action="store_true", help="Start with random start and stop articles.")
+    parser.add_argument("--start", default="", help="Start article for a custom game.")
+    parser.add_argument("--stop", default="", help="Stop/target article for a custom game.")
+    parser.add_argument("--target", default="", help="Alias for --stop.")
     args = parser.parse_args()
 
+    target = args.stop or args.target
+    if args.stop and args.target and args.stop != args.target:
+        parser.error("Use either --stop or --target, or give both the same value.")
+    if args.random and (args.start or target):
+        parser.error("--random cannot be combined with --start, --stop, or --target.")
+    if bool(args.start) != bool(target):
+        parser.error("Custom games need both --start and --stop. Example: --start Banana --stop \"Black hole\"")
+
     BOT_MODE = args.bot
+    initial_command = _initial_game_command(args.random, args.start, target)
 
     if BOT_MODE:
-        run_bot_mode()
+        run_bot_mode(initial_command)
     else:
-        run_interactive_mode(args.start, args.target)
+        run_interactive_mode(initial_command)
 
 
 if __name__ == "__main__":

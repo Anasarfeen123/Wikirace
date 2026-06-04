@@ -1,193 +1,142 @@
-# WikiRace 🏁
+# WikiRace
 
-Navigate Wikipedia by clicking links. Race from a **start article** to a **target article** as fast as possible — with as few clicks as possible.
+WikiRace is a Python/Flask implementation of the classic Wikipedia navigation game. Players start on one Wikipedia article and try to reach a target article by following only links inside article content. The project includes a browser UI, a terminal interface, and a JSON-line bot protocol for automated players.
 
----
+## Features
 
-## Quick Start for Non-Coders
+- Browser-based human game with random and custom article pairs
+- Terminal mode for quick local play and testing
+- Bot mode with JSON commands over stdin/stdout
+- Live Wikipedia data through the Wikimedia API
+- Click counter, timer, path tracking, give-up flow, and win detection
+- Shared game logic in `game_core.py`
+- Vercel-compatible Flask entry point in `api/index.py`
 
-Use this section if you only want to play the game and do not know coding.
+## Requirements
 
-### What You Need
+- Python 3.9 or newer
+- Internet access for dependency installation and Wikipedia API requests
+- A player/contact email for Wikimedia API identification
 
-- A computer with internet access.
-- Python 3.9 or newer.
-- The WikiRace project folder.
+Python dependencies are listed in `requirements.txt`.
 
-If Python is missing, the setup script will tell you where to install it from.
+## Quick Start
 
 ### Windows
 
-1. Download or unzip the WikiRace folder.
-2. Open the folder.
-3. Double-click `START_HERE_WINDOWS.bat`.
-4. Keep the black terminal window open while playing.
+1. Open the project folder.
+2. Double-click `START_HERE_WINDOWS.bat`.
+3. Keep the terminal window open while playing.
 
-The first launch installs what WikiRace needs. Later launches are faster because setup is already done.
-
-If Windows shows a security warning, choose **More info** and then **Run anyway** only if you trust where you got this folder from.
+The first run installs the required Python packages. Later runs should start faster.
 
 ### macOS / Linux
 
-1. Open the WikiRace folder.
-2. Open a terminal in that folder.
-3. Run:
+From the project root:
 
 ```bash
 bash start_here.sh
 ```
 
-Keep that terminal window open while playing.
-
-The game opens at `http://127.0.0.1:5000`. If your browser does not open automatically, copy that address into your browser.
-
-### Stopping the Game
-
-Close the browser tab, then close the terminal window. You can also press `Ctrl+C` in the terminal.
-
----
-
-## Troubleshooting
-
-### The game does not open
-
-Open this address manually in your browser:
+The game runs at:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-Make sure the terminal window is still open.
-
-### Setup says Python is missing
-
-Install Python from:
-
-```text
-https://www.python.org/downloads/
-```
-
-On Windows, check **Add Python to PATH** during installation. After installing Python, run the starter file again.
-
-### Setup fails while installing dependencies
-
-Check your internet connection, then run the starter file again. If it still fails, copy the error message from the terminal and send it to the person helping you.
-
----
+If the browser does not open automatically, open that URL manually. Stop the app with `Ctrl+C` in the terminal.
 
 ## Manual Setup
 
-If you prefer to set up and run separately:
+Run setup once:
 
-### 1. Setup (run once)
-
-| System | Command |
-|--------|---------|
-| macOS / Linux | `bash setup.sh` |
-| Windows | `setup.bat` |
-
-This installs dependencies into a `.venv` folder inside the project.
-
-### 2. AI Warmup (run once, right after setup)
-
-This downloads the bot's AI model now, so the first bot run does not look frozen.
-
-| System | Command |
-|--------|---------|
-| macOS / Linux | `.venv/bin/python 0_warmup.py` |
-| Windows | `.venv\Scripts\python 0_warmup.py` |
-
-### 3. Play in Browser
-
-| System | Command |
-|--------|---------|
-| macOS / Linux | `bash run_human.sh` |
-| Windows | `run_human.bat` |
-
-The browser UI opens automatically at `http://127.0.0.1:5000`.
-
-### 4. Bot Terminal
-
-**Interactive mode** (for testing or playing in the terminal):
 ```bash
+# macOS / Linux
+bash setup.sh
+
+# Windows
+setup.bat
+```
+
+Optional AI model warmup:
+
+```bash
+# macOS / Linux
+.venv/bin/python 0_warmup.py
+
+# Windows
+.venv\Scripts\python 0_warmup.py
+```
+
+Start the browser game:
+
+```bash
+# macOS / Linux
+bash run_human.sh
+
+# Windows
+run_human.bat
+```
+
+Start the terminal game:
+
+```bash
+# macOS / Linux
 bash run_bot.sh
-# or
-bash run_bot.sh --start "Banana" --target "Black hole"
+
+# Windows
+run_bot.bat
 ```
 
-**Bot / pipe mode** (JSON protocol over stdin/stdout, for your bots):
+Start a preset terminal game:
+
 ```bash
-bash run_bot.sh --bot
+bash run_bot.sh --start "Banana" --stop "Black hole"
 ```
 
----
+Start with random terminal articles immediately:
+
+```bash
+bash run_bot.sh --random
+```
 
 ## How to Play
 
-1. A **start article** and **target article** are displayed.
-2. Click **blue links** in the article text to jump to other Wikipedia pages.
-3. Reach the **target article** as quickly as possible.
-4. The **stopwatch** tracks your time, and every click is counted.
+1. Enter an email address for Wikimedia API identification.
+2. Choose a random game or enter custom start and target articles.
+3. Read the current article and click blue article links.
+4. Reach the target article in as few clicks and as little time as possible.
 
-The web UI asks each player for their email address before loading Wikipedia data. That email is used only as the contact value in the User-Agent header sent to Wikimedia API requests for that player's session, following Wikimedia's API identification policy.
+The email entered in the web UI is used only as the contact value in the User-Agent header sent to Wikimedia API requests for that session.
 
-### Modes
-| Mode | Description |
-|------|-------------|
-| Random | Two random articles chosen automatically |
-| Custom | You type both the start and target articles |
+## Bot Mode
 
----
+Bot mode reads one JSON object per line from stdin and writes one JSON response per line to stdout.
 
-## Project Structure
-
-```
-wikirace/
-├── app.py              # Local Flask launcher
-├── api/index.py        # Flask web application (human UI + Vercel entrypoint)
-├── bot_terminal.py     # Terminal interface (human + bots)
-├── 0_warmup.py         # Downloads the AI model before class starts
-├── game_core.py        # Core game state & logic (shared)
-├── wiki_api.py         # Wikipedia API wrapper with caching
-├── requirements.txt    # Python dependencies
-│
-├── templates/
-│   ├── index.html      # Home / lobby page
-│   └── game.html       # Game page
-│
-├── static/
-│   ├── css/style.css   # All styles
-│   └── js/game.js      # Client-side: stopwatch, AJAX navigation, confetti
-│
-├── setup.sh / setup.bat        # One-time setup
-├── run_human.sh / run_human.bat  # Launch browser UI
-└── run_bot.sh / run_bot.bat    # Launch bot terminal
-```
-
----
-
-## Bot Interface — JSON Protocol
-
-Run in pipe mode:
 ```bash
 bash run_bot.sh --bot
 ```
 
-Send one JSON command per line to **stdin**; receive one JSON response per line from **stdout**.
+Bot mode can also start with command-line articles:
+
+```bash
+bash run_bot.sh --bot --start "Banana" --stop "Black hole"
+bash run_bot.sh --bot --random
+```
 
 ### Commands
 
 | Command | Description |
-|---------|-------------|
-| `{"cmd": "new_game"}` | Start game with random articles |
-| `{"cmd": "new_game", "start": "X", "target": "Y"}` | Start with specific articles |
-| `{"cmd": "state"}` | Get current game state |
-| `{"cmd": "links"}` | List all links in the current article |
-| `{"cmd": "navigate", "article": "Fruit"}` | Navigate to an article |
-| `{"cmd": "give_up"}` | Give up the current game |
-| `{"cmd": "quit"}` | Exit the process |
+| --- | --- |
+| `{"cmd": "new_game"}` | Start a random game |
+| `{"cmd": "new_game", "start": "X", "target": "Y"}` | Start a custom game |
+| `{"cmd": "state"}` | Return the current game state |
+| `{"cmd": "links"}` | Return links from the current article |
+| `{"cmd": "navigate", "article": "Fruit"}` | Navigate to a linked article |
+| `{"cmd": "give_up"}` | End the current game as given up |
+| `{"cmd": "quit"}` | Exit bot mode |
 
-### Response format
+### Response Example
 
 ```json
 {
@@ -210,147 +159,120 @@ Send one JSON command per line to **stdin**; receive one JSON response per line 
 }
 ```
 
-`status` values: `playing` | `won` | `given_up`
+`status` is one of `playing`, `won`, or `given_up`.
 
-### Example bot script (Python)
+### Python Bot Example
 
 ```python
-import subprocess, json
+import json
+import subprocess
 
 proc = subprocess.Popen(
     ["bash", "run_bot.sh", "--bot"],
-    stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    text=True,
 )
 
-def send(cmd: dict) -> dict:
-    proc.stdin.write(json.dumps(cmd) + "\n")
+
+def send(command: dict) -> dict:
+    proc.stdin.write(json.dumps(command) + "\n")
     proc.stdin.flush()
     return json.loads(proc.stdout.readline())
 
-# Start a game
-r = send({"cmd": "new_game"})
-print("Start:", r["state"]["start_article"])
-print("Target:", r["state"]["target_article"])
 
-# Get links
-r = send({"cmd": "links"})
-links = r["links"]
+game = send({"cmd": "new_game", "start": "Banana", "target": "Black hole"})
+print(game["state"]["current_article"], "->", game["state"]["target_article"])
 
-# Navigate to first link
-r = send({"cmd": "navigate", "article": links[0]})
-print("Navigated to:", r["state"]["current_article"])
-print("Won?", r.get("won"))
+links = send({"cmd": "links"})["links"]
+result = send({"cmd": "navigate", "article": links[0]})
+print(result["state"])
+
+send({"cmd": "quit"})
 ```
 
----
-
-## Web API Endpoints
+## Web API
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
+| --- | --- | --- |
 | `/` | GET | Home page |
-| `/new_game` | POST | Start new game |
+| `/new_game` | POST | Start a new game |
 | `/game` | GET | Current game page |
-| `/navigate/<title>` | GET | Navigate (AJAX or redirect) |
-| `/give_up` | POST | Give up |
-| `/quit` | GET | Abandon game |
-| `/api/state` | GET | JSON game state |
-| `/api/random_pair` | GET | JSON random article pair |
+| `/navigate/<title>` | GET | Navigate to an article |
+| `/give_up` | POST | Give up the active game |
+| `/quit` | GET | Clear the active game |
+| `/api/state` | GET | Return JSON game state |
+| `/api/random_pair` | GET | Return a random start/target pair |
 
-For AJAX calls add header `X-Requested-With: XMLHttpRequest` — the server returns JSON instead of HTML.
+For AJAX navigation, send `X-Requested-With: XMLHttpRequest` to receive JSON instead of a page redirect.
 
----
-
-## Dependencies
-
-| Package | Purpose |
-|---------|---------|
-| `flask` | Web framework for the human UI |
-| `requests` | Wikipedia API HTTP calls |
-| `beautifulsoup4` + `lxml` | Clean & transform Wikipedia HTML |
-
----
-
-## Deploy to Vercel
-
-This repo is ready to deploy as a Flask app on Vercel. Vercel uses the `app` object in `api/index.py` and installs dependencies from `requirements.txt`.
-
-Each deployer should use their own Vercel account. Do not share or commit `.vercel/project.json`; it is local Vercel project linkage and is ignored by git.
-
-### 1. Install and log in with your Vercel account
-
-```bash
-npm i -g vercel
-vercel login
-```
-
-### 2. Link or create your own Vercel project
-
-From the project root:
-
-```bash
-vercel link
-```
-
-Choose your own account/team and project. This creates a local `.vercel/project.json` for your machine only.
-
-### 3. Set a production session secret
-
-In the Vercel dashboard, add this environment variable:
+## Project Structure
 
 ```text
-FLASK_SECRET_KEY=<a long random secret>
+.
+├── app.py                 # Local Flask launcher
+├── api/index.py           # Flask app and Vercel entry point
+├── game_core.py           # Shared game state and win logic
+├── wiki_api.py            # Wikimedia API wrapper and HTML cleanup
+├── bot_terminal.py        # Interactive terminal and bot protocol
+├── embedding_bot.py       # AI-assisted bot support
+├── 0_warmup.py            # Downloads the sentence-transformer model
+├── requirements.txt       # Python dependencies
+├── templates/             # Flask HTML templates
+├── static/                # CSS and JavaScript
+├── setup.sh / setup.bat   # One-time setup scripts
+├── run_human.*            # Browser game launch scripts
+└── run_bot.*              # Terminal and bot launch scripts
 ```
 
-`FLASK_SECRET_KEY` is used to sign Flask session cookies. The app can start without it, but Vercel cold starts may invalidate active sessions, so setting it is recommended.
+## Environment Variables
 
-Players enter their own email in the web UI. That player email is included in the User-Agent sent to Wikimedia API requests for their session, so the deployed app does not use the deployer's email for everyone.
+| Variable | Purpose |
+| --- | --- |
+| `FLASK_SECRET_KEY` | Secret key for Flask session cookies; recommended for deployments |
+| `SECRET_KEY` | Fallback Flask session secret |
+| `WIKIRACE_CONTACT_EMAIL` | Contact email for bot/headless Wikimedia API requests |
+| `WIKIMEDIA_CONTACT_EMAIL` | Alternative contact email variable |
+| `WIKIMEDIA_USER_AGENT` | Full custom Wikimedia API User-Agent |
 
-For bot/headless usage, set `WIKIRACE_CONTACT_EMAIL` or a full `WIKIMEDIA_USER_AGENT` in the environment before making Wikipedia API calls.
+For browser play, each player enters their email in the UI. For bot or direct module usage, set `WIKIRACE_CONTACT_EMAIL` or `WIKIMEDIA_USER_AGENT`.
 
-### 4. Deploy
+## Deployment
 
-From the project root:
+This repository can be deployed to Vercel as a Flask app. Vercel uses the `app` object exported from `api/index.py` and installs dependencies from `requirements.txt`.
 
-```bash
-vercel
-```
+1. Install the Vercel CLI:
 
-For production:
+   ```bash
+   npm i -g vercel
+   ```
 
-```bash
-vercel --prod
-```
+2. Log in and link a project:
 
-Notes:
+   ```bash
+   vercel login
+   vercel link
+   ```
 
-- Static assets are served from the single canonical `static/` directory.
-- Game state is mirrored into the signed Flask session for Vercel's serverless runtime. Very long paths may exceed browser cookie limits; use Redis or another external store if you need production-scale persistence.
-- The app fetches live Wikipedia data, so deployed games require outbound network access.
+3. Set `FLASK_SECRET_KEY` in the Vercel dashboard.
 
----
+4. Deploy:
 
-## Tips for Bot Builders
+   ```bash
+   vercel
+   vercel --prod
+   ```
 
-- **`links` command** returns every main-namespace link in the current article — use this as your action space.
-- **`elapsed`** in the state is server-side elapsed seconds — useful for time-budget strategies.
-- Wikipedia article links form a **directed graph**. BFS / greedy category-climbing tend to work well.
-- The `game_core.py` and `wiki_api.py` modules can be imported directly in your bot code without using the JSON protocol:
+Do not commit `.vercel/project.json`; it contains local project linkage and is ignored by git.
 
-```python
-from game_core import new_game
-from wiki_api  import get_random_pair, get_article_links
+## Troubleshooting
 
-start, target = get_random_pair()
-game = new_game(start["title"], target["title"])
+If the browser does not open, visit `http://127.0.0.1:5000` manually and make sure the terminal is still running.
 
-links = get_article_links(game.current_article)
-won   = game.navigate(links[0])
-print(game.to_dict())
-```
+If Python is missing, install it from `https://www.python.org/downloads/`. On Windows, enable "Add Python to PATH" during installation.
 
----
+If dependency installation fails, check your internet connection and rerun the setup script.
 
 ## License
 
-MIT — do what you like.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
